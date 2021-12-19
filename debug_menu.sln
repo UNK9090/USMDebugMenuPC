@@ -5,6 +5,11 @@ VisualStudioVersion = 16.0.31410.357
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "debug_menu", "debug_menu.vcxproj", "{2F2837E1-2D49-4954-8E47-F5957F606E58}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4D6A6962-F664-4BF3-9C05-287C5F8CB62C}"
+	ProjectSection(SolutionItems) = preProject
+		main1.c = main1.c
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
