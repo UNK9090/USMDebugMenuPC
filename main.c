@@ -138,9 +138,11 @@ typedef struct {
 
 
 debug_menu* start_debug = NULL;
-debug_menu* num_debug = NULL;
+debug_menu* test_debug = NULL;
+debug_menu* mod_debug = NULL;
 debug_menu* warp_menu = NULL;
 debug_menu* game_menu = NULL;
+debug_menu* game_num_menu = NULL;
 debug_menu* district_variants_menu = NULL;
 debug_menu* hero_menu = NULL;
 debug_menu* script_menu = NULL;
@@ -148,6 +150,7 @@ debug_menu* progression_menu = NULL;
 debug_menu* devopt_flags_menu = NULL;
 debug_menu* devopt_int_menu = NULL;
 debug_menu* level_select_menu = NULL;
+debug_menu* reboot_menu = NULL;
 debug_menu* mission_menu = NULL;
 debug_menu* jf = NULL;
 debug_menu* jg = NULL;
@@ -183,9 +186,10 @@ debug_menu* misc_menu = NULL;
 
 debug_menu** all_menus[] = {
 	&start_debug,
-	&num_debug,
+	&mod_debug,
 	&warp_menu,
 	&game_menu,
+	&game_num_menu,
 	&district_variants_menu,
 	&hero_menu,
 	&script_menu,
@@ -193,6 +197,7 @@ debug_menu** all_menus[] = {
 	&devopt_flags_menu,
 	&devopt_int_menu,
 	&level_select_menu,
+	&reboot_menu,
 	&jf,
 	&jg,
 	&kf,
@@ -225,13 +230,14 @@ debug_menu** all_menus[] = {
 };
 
 debug_menu* current_menu = NULL;
-debug_menu* camera_menu = NULL;
 
 
 
 void goto_start_debug() {
-	current_menu = num_debug = start_debug;
+	current_menu = start_debug;
 }
+
+
 
 
 
@@ -360,6 +366,9 @@ int construct_client_script_libs_hook() {
 
 typedef (__fastcall* mString_mString_ptr)(mString* this, const char*);
 mString_mString_ptr mString_mString = 0x00421100;
+
+typedef (__fastcall* os_dev_int_options_ptr)(mString* this, int a2);
+os_dev_int_options_ptr os_dev_int_options = 0x0041FE10;
 
 typedef (__fastcall* mString_constructor_ptr)(mString* this, void* edx, char* str);
 mString_constructor_ptr mString_constructor = 0x00421100;
@@ -565,9 +574,17 @@ char* getRealText(debug_menu_entry* entry, char* str) {
 		return str;
 	}
 
+
 	if (entry->entry_type == BOOLEAN_F) {
+		BYTE* val = entry->data;
+		sprintf(str, "%s: %s", entry->text, *val ? "1" : "0");
+		return str;
+
+	}
+
+	if (entry->entry_type == BOOLEAN_H) {
 		BYTE* num = entry->data;
-		sprintf(str, "%s : %s", entry->text, *num ? "1" : "0");
+		sprintf(str, "%s: %s", entry->text, *num ? "User" : "Chase");
 
 		return str;
 	}
@@ -777,16 +794,25 @@ typedef (__fastcall* world_dynamics_system_remove_player_ptr)(void* this, void* 
 world_dynamics_system_remove_player_ptr world_dynamics_system_remove_player = 0x00558550;
 
 
+
 typedef (__fastcall* world_dynamics_system_add_player_ptr)(void* this, void* edx, mString* str);
 world_dynamics_system_add_player_ptr world_dynamics_system_add_player = 0x0055B400;
+
+typedef int(_fastcall* mission_stack_manager_insert_mission_pack_ptr)(void* this, void* edx, mString* str);
+mission_stack_manager_insert_mission_pack_ptr mission_stack_manager_insert_mission_pack = 0x005D82D0;
+
+typedef int(_fastcall* mission_stack_manager_push_mission_pack_ptr)(void* this, void* edx, int number);
+mission_stack_manager_push_mission_pack_ptr mission_stack_manager_push_mission_pack = 0x005D7FE0;
 
 DWORD changing_model = 0;
 char* current_costume = "ultimate_spiderman";
 
-DWORD mission_manager_s_inst = 1;
-debug_menu_active_menu = 1;
-debug_menu_had_menu_this_frame = 1;
+DWORD changing_mission = 0;
 char* current_mission = "s01_fathers_pride (s01_fathers_pride00)";
+
+DWORD reboot = "venom";
+
+
 
 
 
@@ -993,18 +1019,6 @@ uint8_t __stdcall slf__create_debug_menu_entry(slf* function, void* unk) {
 
 
 
-
-
-uint8_t __fastcall missions_executables(BYTE* this, void* edx, int flag) {
-
-
-	return strncmp(*(const char**)(this[16] + 8), "s01_fathers_pride", 0xFFFFu);
-	strncmp(*(const char**)(this[16] + 8), "s02_workout", 0xFFFFu);
-
-
-}
-
-
 DWORD modulo(int num, DWORD mod) {
 	if (num >= 0) {
 		return num % mod;
@@ -1104,23 +1118,14 @@ HRESULT __stdcall GetjoystateHook(DUALSHOCK4_GAMEPAD* this, DWORD cbData, LPVOID
 			//debug menu stuff
 			if (keys[DIK_X] == 2 && (game_state == 6 || game_state == 7)) {
 
-
-
 				if (!debug_enabled && game_state == 6) {
-					game_unpause(g_game_ptr);
-					debug_enabled = !debug_enabled;
-					current_menu = start_debug;
-				}
-
-				if (!debug_enabled && game_state == 7) {
 					game_pause(g_game_ptr);
 					debug_enabled = !debug_enabled;
 					current_menu = start_debug;
 				}
 
-
-				else if (debug_enabled && game_state == 8) {
-					game_unpause(g_game_ptr);
+			    if (!debug_enabled && game_state == 7) {
+					game_pause(g_game_ptr);
 					debug_enabled = !debug_enabled;
 					current_menu = start_debug;
 				}
@@ -1840,24 +1845,298 @@ HRESULT __stdcall GetjoystateHook(DUALSHOCK4_GAMEPAD* this, DWORD cbData, LPVOID
 
 				BYTE* cameraoff = *(BYTE**)0x0096858C;
 				debug_menu_entry activated = { "Camera", BOOLEAN_H,  &cameraoff[4 + 0x15] };
-				add_debug_menu_entry(num_debug, &activated);
+				add_debug_menu_entry(misc_menu, &activated);
 		
 			}
 
 				if (devopt_int_menu->used_slots == 0) {
 
-				BYTE* god_mode = 0x95A6A8;
-				debug_menu_entry godmode = { "God Mode ", BOOLEAN_F,  &god_mode[0] };
-				add_debug_menu_entry(devopt_int_menu, &godmode);
+				BYTE* god_mode  = 0x95A6A8;
+				debug_menu_entry godmode = { "God Mode ", BOOLEAN_F,  &god_mode[0]};
+				add_debug_menu_entry(game_num_menu, &godmode);
 
 				BYTE* mega_god_mode = 0x95A6A8;
 				debug_menu_entry megagodmode = { "Mega God Mode ", BOOLEAN_F,  &mega_god_mode[1] };
-				add_debug_menu_entry(devopt_int_menu, &megagodmode);
+				add_debug_menu_entry(game_num_menu, &megagodmode);
 
 				BYTE* ultra_god_mode = 0x95A6A8;
 				debug_menu_entry ultragodmode = { "Ultra God Mode ", BOOLEAN_F,  &ultra_god_mode[2] };
-				add_debug_menu_entry(devopt_int_menu, &ultragodmode);
+				add_debug_menu_entry(game_num_menu, &ultragodmode);
 
+
+				BYTE* district = 0x95AAC8;
+				debug_menu_entry district_entry = { "district ", BOOLEAN_F,  &district };
+				add_debug_menu_entry(game_num_menu, &district_entry);
+
+				BYTE* ints0 = *(BYTE**)0x00936940;
+				debug_menu_entry int0 = { "DIFFICULTY", BOOLEAN_F,  &ints0[4 + 0x00] };
+				add_debug_menu_entry(devopt_int_menu, &int0);
+
+				BYTE* ints1 = *(BYTE**)0x00936940;
+				debug_menu_entry int1 = { "CAMERA_STYLE", BOOLEAN_F,  &ints1[4 + 0x01] };
+				add_debug_menu_entry(devopt_int_menu, &int1);
+
+				BYTE* ints2 = *(BYTE**)0x00936940;
+				debug_menu_entry int2 = { "CAMERA_STATE", BOOLEAN_F,  &ints2[4 + 0x02] };
+				add_debug_menu_entry(devopt_int_menu, &int2);
+
+				BYTE* ints3 = *(BYTE**)0x00936940;
+				debug_menu_entry int3 = { "CAMERA_FOV ", BOOLEAN_F,  &ints3[4 + 0x03] };
+				add_debug_menu_entry(devopt_int_menu, &int3);
+
+				BYTE* ints4 = *(BYTE**)0x00936940;
+				debug_menu_entry int4 = { "FOG_RED ", BOOLEAN_F,  &ints4[4 + 0x04] };
+				add_debug_menu_entry(devopt_int_menu, &int4);
+
+				BYTE* ints5 = *(BYTE**)0x00936940;
+				debug_menu_entry int5 = { "FOG_GREEN", BOOLEAN_F,  &ints5[4 + 0x05] };
+				add_debug_menu_entry(devopt_int_menu, &int5);
+
+				BYTE* ints6 = *(BYTE**)0x00936940;
+				debug_menu_entry int6 = { "FOG_DISTANCE", BOOLEAN_F,  &ints6[4 + 0x06] };
+				add_debug_menu_entry(devopt_int_menu, &int6);
+
+				BYTE* ints7 = *(BYTE**)0x00936940;
+				debug_menu_entry int7 = { "BIT DEPTH ", BOOLEAN_F,  &ints7[4 + 0x07] };
+				add_debug_menu_entry(devopt_int_menu, &int7);
+
+				BYTE* ints8 = *(BYTE**)0x00936940;
+				debug_menu_entry int8 = { "MONKEY_MODE ", BOOLEAN_F,  &ints8[4 + 0x08] };
+				add_debug_menu_entry(devopt_int_menu, &int8);
+
+				BYTE* ints9 = *(BYTE**)0x00936940;
+				debug_menu_entry int9 = { "RANDOM_SEED", BOOLEAN_F,  &ints9[4 + 0x09] };
+				add_debug_menu_entry(devopt_int_menu, &int9);
+
+				BYTE* ints10 = *(BYTE**)0x00936940;
+				debug_menu_entry int10 = { "FORCE_WIN", BOOLEAN_F,  &ints10[4 + 0x0A] };
+				add_debug_menu_entry(devopt_int_menu, &int10);
+
+				BYTE* ints11 = *(BYTE**)0x00936940;
+				debug_menu_entry int11 = { "CONTROLLER_TYPE", BOOLEAN_F,  &ints11[4 + 0x0B] };
+				add_debug_menu_entry(devopt_int_menu, &int11);
+
+				BYTE* ints12 = *(BYTE**)0x00936940;
+				debug_menu_entry int12 = { "FRAME_LOCK", BOOLEAN_F,  &ints12[4 + 0x0C] };
+				add_debug_menu_entry(devopt_int_menu, &int12);
+
+				BYTE* ints13 = *(BYTE**)0x00936940;
+				debug_menu_entry int13 = { "FRAME_LIMIT", BOOLEAN_F,  &ints13[4 + 0x0D] };
+				add_debug_menu_entry(devopt_int_menu, &int13);
+
+				BYTE* ints14 = *(BYTE**)0x00936940;
+				debug_menu_entry int14 = { "SWING_DEBUG_TRAILS", BOOLEAN_F,  &ints14[4 + 0x0E] };
+				add_debug_menu_entry(devopt_int_menu, &int14);
+
+				BYTE* ints15 = *(BYTE**)0x00936940;
+				debug_menu_entry int15 = { "SOAK_SMOKE", BOOLEAN_F,  &ints15[4 + 0x0F] };
+				add_debug_menu_entry(devopt_int_menu, &int15);
+
+				BYTE* ints16 = *(BYTE**)0x00936940;
+				debug_menu_entry int16 = { "FAR_CLIP_PLANE", BOOLEAN_F,  &ints16[4 + 0x10] };
+				add_debug_menu_entry(devopt_int_menu, &int16);
+
+				BYTE* ints17 = *(BYTE**)0x00936940;
+				debug_menu_entry int17 = { "POI_DISPLAY_TYPE", BOOLEAN_F,  &ints17[4 + 0x11] };
+				add_debug_menu_entry(devopt_int_menu, &int17);
+
+				BYTE* ints18 = *(BYTE**)0x00936940;
+				debug_menu_entry int18 = { "STORY_MISSION", BOOLEAN_F,  &ints18[4 + 0x12] };
+				add_debug_menu_entry(devopt_int_menu, &int18);
+
+				BYTE* ints19 = *(BYTE**)0x00936940;
+				debug_menu_entry int19 = { "EXEC_DELAY", BOOLEAN_F,  &ints19[4 + 0x13] };
+				add_debug_menu_entry(devopt_int_menu, &int19);
+
+				BYTE* ints20 = *(BYTE**)0x00936940;
+				debug_menu_entry int20 = { "RUN_LENGTH", BOOLEAN_F,  &ints20[4 + 0x14] };
+				add_debug_menu_entry(devopt_int_menu, &int20);
+
+				BYTE* ints21 = *(BYTE**)0x00936940;
+				debug_menu_entry int21 = { "PC_WINDOW_TOP", BOOLEAN_F,  &ints21[4 + 0x15] };
+				add_debug_menu_entry(devopt_int_menu, &int21);
+
+				BYTE* ints22 = *(BYTE**)0x00936940;
+				debug_menu_entry int22 = { "PC_WINDOW_LEFT", BOOLEAN_F,  &ints22[4 + 0x16] };
+				add_debug_menu_entry(devopt_int_menu, &int22);
+
+				BYTE* ints23 = *(BYTE**)0x00936940;
+				debug_menu_entry int23 = { "PC_WINDOW_WIDTH", BOOLEAN_F,  &ints23[4 + 0x17] };
+				add_debug_menu_entry(devopt_int_menu, &int23);
+
+				BYTE* ints24 = *(BYTE**)0x00936940;
+				debug_menu_entry int24 = { "PC_WINDOW_HEIGHT", BOOLEAN_F,  &ints24[4 + 0x18] };
+				add_debug_menu_entry(devopt_int_menu, &int24);
+
+				BYTE* ints25 = *(BYTE**)0x00936940;
+				debug_menu_entry int25 = { "ALLOW_SCREENSHOT", BOOLEAN_F,  &ints25[4 + 0x19] };
+				add_debug_menu_entry(devopt_int_menu, &int25);
+
+				BYTE* ints26 = *(BYTE**)0x00936940;
+				debug_menu_entry int26 = { "AMALGA_REFRESH_INTERVAL", BOOLEAN_F,  &ints26[4 + 0x1A] };
+				add_debug_menu_entry(devopt_int_menu, &int26);
+
+				BYTE* ints27 = *(BYTE**)0x00936940;
+				debug_menu_entry int27 = { "ENABLE_LONG_MALOR_ASSERTS", BOOLEAN_F,  &ints27[4 + 0x1B] };
+				add_debug_menu_entry(devopt_int_menu, &int27);
+
+				BYTE* ints28 = *(BYTE**)0x00936940;
+				debug_menu_entry int28 = { "GOD MODE ", BOOLEAN_F,  &ints28[4 + 0x1C] };
+				add_debug_menu_entry(devopt_int_menu, &int28);
+
+				BYTE* ints29 = *(BYTE**)0x00936940;
+				debug_menu_entry int29 = { "PCLISTBUFFER", BOOLEAN_F,  &ints29[4 + 0x1D] };
+				add_debug_menu_entry(devopt_int_menu, &int29);
+
+				BYTE* ints30 = *(BYTE**)0x00936940;
+				debug_menu_entry int30 = { "PCSCRATCHBUFFER", BOOLEAN_F,  &ints30[4 + 0x1E] };
+				add_debug_menu_entry(devopt_int_menu, &int1);
+
+				BYTE* ints31 = *(BYTE**)0x00936940;
+				debug_menu_entry int31 = { "PCSCRATCHINDEXBUFFER", BOOLEAN_F,  &ints31[4 + 0x1F] };
+				add_debug_menu_entry(devopt_int_menu, &int31);
+
+				BYTE* ints32 = *(BYTE**)0x00936940;
+				debug_menu_entry int32 = { "PCSCRATCHVERTEXBUFFER", BOOLEAN_F,  &ints32[4 + 0x20] };
+				add_debug_menu_entry(devopt_int_menu, &int32);
+
+
+				BYTE* ints33 = *(BYTE**)0x00936940;
+				debug_menu_entry int33 = { "NAL_HEAP_SIZE", BOOLEAN_F,  &ints33[4 + 0x21] };
+				add_debug_menu_entry(devopt_int_menu, &int33);
+
+				BYTE* ints34 = *(BYTE**)0x00936940;
+				debug_menu_entry int34 = { "ASSERT_BOX_MARGIN", BOOLEAN_F,  &ints34[4 + 0x22] };
+				add_debug_menu_entry(devopt_int_menu, &int34);
+
+				BYTE* ints35 = *(BYTE**)0x00936940;
+				debug_menu_entry int35 = { "ASSERT_TEXT_MARGIN", BOOLEAN_F,  &ints35[4 + 0x23] };
+				add_debug_menu_entry(devopt_int_menu, &int35);
+
+				BYTE* ints36 = *(BYTE**)0x00936940;
+				debug_menu_entry int36 = { "ASSERT_FONT_PCT_X", BOOLEAN_F,  &ints36[4 + 0x24] };
+				add_debug_menu_entry(devopt_int_menu, &int36);
+
+				BYTE* ints37 = *(BYTE**)0x00936940;
+				debug_menu_entry int37 = { "ASSERT_FONT_PCT_Y", BOOLEAN_F,  &ints37[4 + 0x25] };
+				add_debug_menu_entry(devopt_int_menu, &int37);
+
+				BYTE* ints38 = *(BYTE**)0x00936940;
+				debug_menu_entry int38 = { "STREAMER_INFO_FONT_PCT", BOOLEAN_F,  &ints38[4 + 0x26] };
+				add_debug_menu_entry(devopt_int_menu, &int38);
+
+				BYTE* ints39 = *(BYTE**)0x00936940;
+				debug_menu_entry int39 = { "DEBUG_INFO_FONT_PCT", BOOLEAN_F,  &ints39[4 + 0x27] };
+				add_debug_menu_entry(devopt_int_menu, &int39);
+
+				BYTE* ints40 = *(BYTE**)0x00936940;
+				debug_menu_entry int40 = { "PITCH_FACTOR", BOOLEAN_F,  &ints40[4 + 0x28] };
+				add_debug_menu_entry(devopt_int_menu, &int40);
+
+				BYTE* ints41 = *(BYTE**)0x00936940;
+				debug_menu_entry int41 = { "BANK_FACTOR", BOOLEAN_F,  &ints41[4 + 0x29] };
+				add_debug_menu_entry(devopt_int_menu, &int41);
+
+				BYTE* ints42 = *(BYTE**)0x00936940;
+				debug_menu_entry int42 = { "SWING_INTERPOLATION_TIME", BOOLEAN_F,  &ints42[4 + 0x2A] };
+				add_debug_menu_entry(devopt_int_menu, &int42);
+
+				BYTE* ints43 = *(BYTE**)0x00936940;
+				debug_menu_entry int43 = { "BOTH_HANDS_INTERPOLATION_TIME", BOOLEAN_F,  &ints43[4 + 0x2B] };
+				add_debug_menu_entry(devopt_int_menu, &int43);
+
+				BYTE* ints44 = *(BYTE**)0x00936940;
+				debug_menu_entry int44 = { "MEM_DUMP_FRAME", BOOLEAN_F,  &ints44[4 + 0x2C] };
+				add_debug_menu_entry(devopt_int_menu, &int44);
+
+				BYTE* ints45 = *(BYTE**)0x00936940;
+				debug_menu_entry int45 = { "HERO_START_X",  BOOLEAN_F,  &ints45[4 + 0x2D] };
+				add_debug_menu_entry(devopt_int_menu, &int45);
+
+				BYTE* ints46 = *(BYTE**)0x00936940;
+				debug_menu_entry int46 = { "HERO_START_Y",  BOOLEAN_F,  &ints46[4 + 0x2E] };
+				add_debug_menu_entry(devopt_int_menu, &int46);
+
+				BYTE* ints47 = *(BYTE**)0x00936940;
+				debug_menu_entry int47 = { "HERO_START_Z", BOOLEAN_F,  &ints47[4 + 0x2F] };
+				add_debug_menu_entry(devopt_int_menu, &int47);
+
+				BYTE* ints48 = *(BYTE**)0x00936940;
+				debug_menu_entry int48 = { "SHOW_SOUND_INFO", BOOLEAN_F,  &ints48[4 + 0x30] };
+				add_debug_menu_entry(devopt_int_menu, &int48);
+
+            	BYTE* ints49 = *(BYTE**)0x00936940;
+				debug_menu_entry int49 = { "SHOW_VOICE_BOX_INFO", BOOLEAN_F,  &ints49[4 + 0x349] };
+				add_debug_menu_entry(devopt_int_menu, &int49);
+
+				BYTE* ints50 = *(BYTE**)0x00936940;
+				debug_menu_entry int50 = { "DEBUG_CAMERA_PITCH_MULTIPLIER", BOOLEAN_F,  &ints50[4 + 0x32] };
+				add_debug_menu_entry(devopt_int_menu, &int50);
+
+				BYTE* ints51 = *(BYTE**)0x00936940;
+				debug_menu_entry int51 = { "DEBUG_CAMERA_YAW_MULTIPLIER", BOOLEAN_F,  &ints51[4 + 0x33] };
+				add_debug_menu_entry(devopt_int_menu, &int51);
+
+				BYTE* ints52 = *(BYTE**)0x00936940;
+				debug_menu_entry int52 = { "DEBUG_CAMERA_MOVE_MULTIPLIER", BOOLEAN_F,  &ints52[4 + 0x34] };
+				add_debug_menu_entry(devopt_int_menu, &int52);
+
+				BYTE* ints53 = *(BYTE**)0x00936940;
+				debug_menu_entry int53 = { "DEBUG_CAMERA_STRAFE_MULTIPLIER", BOOLEAN_F,  &ints53[4 + 0x35] };
+				add_debug_menu_entry(devopt_int_menu, &int53);
+
+				BYTE* ints54 = *(BYTE**)0x00936940;
+				debug_menu_entry int54 = { "TAM_SCALE_MIN_DISTANCE", BOOLEAN_F,  &ints54[4 + 0x36] };
+				add_debug_menu_entry(devopt_int_menu, &int54);
+
+				BYTE* ints55 = *(BYTE**)0x00936940;
+				debug_menu_entry int55 = { "TAM_SCALE_MAX_DISTANCE", BOOLEAN_F,  &ints55[4 + 0x37] };
+				add_debug_menu_entry(devopt_int_menu, &int55);
+
+				BYTE* ints56 = *(BYTE**)0x00936940;
+				debug_menu_entry int56 = { "THUG_HEALTH_UI_SCALE_MIN_DISTANCE", BOOLEAN_F,  &ints56[4 + 0x38] };
+				add_debug_menu_entry(devopt_int_menu, &int56);
+
+				BYTE* ints57 = *(BYTE**)0x00936940;
+				debug_menu_entry int57 = { "THUG_HEALTH_UI_SCALE_MAX_DISTANCE", BOOLEAN_F,  &ints57[4 + 0x39] };
+				add_debug_menu_entry(devopt_int_menu, &int57);
+
+				BYTE* ints58 = *(BYTE**)0x00936940;
+				debug_menu_entry int58 = { "THUG_HEALTH_UI_SCALE_MIN_PERCENT", BOOLEAN_F,  &ints58[4 + 0x3A] };
+				add_debug_menu_entry(devopt_int_menu, &int58);
+
+				BYTE* ints59 = *(BYTE**)0x00936940;
+				debug_menu_entry int59 = { "THUG_HEALTH_UI_SCALE_MIN_DISTANCE", BOOLEAN_F,  &ints59[4 + 0x3B] };
+				add_debug_menu_entry(devopt_int_menu, &int59);
+
+				BYTE* ints60 = *(BYTE**)0x00936940;
+				debug_menu_entry int60 = { "THUG_HEALTH_UI_SCALE_MAX_DISTANCE", BOOLEAN_F,  &ints60[4 + 0x3C] };
+				add_debug_menu_entry(devopt_int_menu, &int60);
+
+				BYTE* ints61 = *(BYTE**)0x00936940;
+				debug_menu_entry int61 = { "THUG_HEALTH_UI_SCALE_MIN_PERCENT", BOOLEAN_F,  &ints61[4 + 0x3D] };
+				add_debug_menu_entry(devopt_int_menu, &int61);
+
+				BYTE* ints62 = *(BYTE**)0x00936940;
+				debug_menu_entry int62 = { "TARGETING_RETICLE_SCALE_MIN_DISTANCE", BOOLEAN_F,  &ints62[4 + 0x3E] };
+				add_debug_menu_entry(devopt_int_menu, &int62);
+
+				BYTE* ints63 = *(BYTE**)0x00936940;
+				debug_menu_entry int63 = { "TARGETING_RETICLE_SCALE_MAX_DISTANCE", BOOLEAN_F,  &ints63[4 + 0x3F] };
+				add_debug_menu_entry(devopt_int_menu, &int63);
+
+				BYTE* ints64 = *(BYTE**)0x00936940;
+				debug_menu_entry int64 = { "TARGETING_RETICLE_SCALE_MIN_PERCENT", BOOLEAN_F,  &ints64[4 + 0x40] };
+				add_debug_menu_entry(devopt_int_menu, &int64);
+
+
+				BYTE* ints65 = *(BYTE**)0x00936940;
+				debug_menu_entry int65 = { "HIRES_SCREENSHOT_X", BOOLEAN_F,  &ints65[4 + 0x41] };
+				add_debug_menu_entry(devopt_int_menu, &int65);
+
+				BYTE* ints66 = *(BYTE**)0x00936940;
+				debug_menu_entry int66 = { "HIRES_SCREENSHOT_Z", BOOLEAN_F,  &ints66[4 + 0x42] };
+				add_debug_menu_entry(devopt_int_menu, &int66);
 
 			}
 
@@ -1900,13 +2179,13 @@ HRESULT __stdcall GetjoystateHook(DUALSHOCK4_GAMEPAD* this, DWORD cbData, LPVOID
 				if (cur->entry_type == BOOLEAN_E || cur->entry_type == CUSTOM)
 					current_menu->handler(cur, (keys[DIK_LEFTARROW] == 2 ? LEFT : RIGHT));
 			}
-			else if (keys[DIK_NUMPAD6] == 2 || keys[DIK_NUMPAD6] == 2) {
+			else if (keys[DIK_LEFTARROW] == 2 || keys[DIK_RIGHTARROW] == 2) {
 
 				debug_menu_entry* cur = &current_menu->entries[current_menu->window_start + current_menu->cur_index];
 				if (cur->entry_type == BOOLEAN_F || cur->entry_type == CUSTOM)
-					current_menu->handler(cur, (keys[DIK_LEFTARROW] == 2 ? LEFT : RIGHT));
+					current_menu->handler(cur, (keys[DIK_LEFTARROW] == 2 ? LEFT : RIGHT ? LEFT : RIGHT));
 			}
-			else if (keys[DIK_NUMPAD7] == 2 || keys[DIK_NUMPAD7] == 2) {
+			else if (keys[DIK_LEFTARROW] == 2 || keys[DIK_RIGHTARROW] == 2) {
 
 				debug_menu_entry* cur = &current_menu->entries[current_menu->window_start + current_menu->cur_index];
 				if (cur->entry_type == BOOLEAN_H || cur->entry_type == CUSTOM)
@@ -1995,11 +2274,6 @@ HRESULT  __stdcall IDirectInput8ReleaseHook(IDirectInput8W* this) {
 	return releaseDeviceOriginal(this);
 }
 
-BOOL  missions_select(DWORD* this)
-{
-	return strncmp(*(const char**)(this[16] + 8), "s01_fathers_pride", 0xFFFFu)
-		&& strncmp(*(const char**)(this[16] + 8), "s02_workout", 0xFFFFu);
-}
 
 BOOL CALLBACK EnumDevices(dwDevType, DIEnumDevicesCallback_static, this, dwFlags) {
 
@@ -2065,6 +2339,35 @@ int __fastcall game_handle_game_states(void* this, void* edx, void* a2) {
 		}
 	}
 
+	if (reboot) {
+
+
+		reboot--;
+
+		if (!reboot) {
+			mString str;
+			mString_constructor(&str, NULL, current_costume);
+			world_dynamics_system_add_player(*(DWORD*)g_world_ptr, NULL, &str);
+			mString_finalize(&str, NULL, 0);
+			game_unpause(g_game_ptr);
+		}
+	}
+
+	if (changing_mission) {
+
+
+		changing_mission --;
+
+		if (!changing_mission) {
+			mString str;
+			mString_constructor(&str, NULL, current_mission);
+			world_dynamics_system_add_player(*(DWORD*)g_world_ptr, NULL, &str);
+			mString_finalize(&str, NULL, 0);
+			game_unpause(g_game_ptr);
+		}
+	}
+
+
 
 	/*
 	if (game_get_cur_state(this) == 14)
@@ -2129,23 +2432,10 @@ void __fastcall resource_pack_streamer_load_hook(DWORD* this, char* Str1, int a3
 
 }
 
-typedef int(_fastcall* mission_stack_manager_insert_mission_pack_ptr)(DWORD* this, int a2, int a3, int a4);
-mission_stack_manager_insert_mission_pack_ptr mission_stack_manager_insert_mission_pack = 0x005D82D0;
 
-void __fastcall mission_stack_manager_insert_mission_pack_hook(DWORD* this, int a2, int a3, int a4) {
 
-	return mission_stack_manager_insert_mission_pack(this, a2, a3, a4);
 
-}
 
-typedef int(_fastcall* mission_stack_manager_push_mission_pack_ptr)(DWORD* this, int a2, int a3, int a4);
-mission_stack_manager_push_mission_pack_ptr mission_stack_manager_push_mission_pack = 0x005D7FE0;
-
-void __fastcall mission_stack_manager_push_mission_pack_hook(DWORD* this, int a2, int a3, int a4, char a5) {
-
-	return mission_stack_manager_insert_mission_pack(this, a2, a3, a4, a5);
-
-}
 
 char spider_monkey_is_running()
 {
@@ -2170,34 +2460,14 @@ uint8_t __fastcall os_developer_options(BYTE* this, void* edx, int flag) {
 	}
 
 }
-
-int __fastcall os_developer_options_get_int_from_name(DWORD* this, int a2, int a3)
+mString* __fastcall os_developer_options_get_int_os_developer_options_ints_t_(char* this, int a2, int a3)
 {
-	int result; // eax
-
-	result = a3;
-	this[a2 + 95] = a3;
-	return result;
-}
-
-int __fastcall os_developer_options_get_flag_from_name(BYTE* this, int a2)
-{
-	int result; // eax
-
-	result = a2;
-	this[a2 + 4] = this[a2 + 4] != 1;
-	return result;
+	return os_dev_int_options((mString*)&this[16 * a2 + 156], a3);
 }
 
 
-int __fastcall os_developer_options_get_int(BYTE* this, int a2, char a3)
-{
-	int result; // eax
 
-	BYTE(res) = a3;
-	this[a2 + 4] = a3;
-	return res;
-}
+
 
 int __fastcall unlockables_ltd_edition(BYTE* this, int a2)
 {
@@ -2253,8 +2523,8 @@ void install_patches() {
 	HookFunc(0x00478DBF, get_info_node_hook, 0, "Hook get_info_node to get player ptr");
 
 
-	WriteDWORD(0x0089C710, slf__create_progression_menu_entry, "Hooking first ocurrence of create_progession_menu_entry");
-	WriteDWORD(0x0089C718, slf__create_progression_menu_entry, "Hooking second  ocurrence of create_progession_menu_entry");
+	WriteDWORD(0x0089C710, slf__create_progression_menu_entry, "Hooking first ocurrence of create_progression_menu_entry");
+	WriteDWORD(0x0089C718, slf__create_progression_menu_entry, "Hooking second  ocurrence of create_progression_menu_entry");
 
 
 
@@ -2270,13 +2540,11 @@ void install_patches() {
 	WriteDWORD(0x0089C750, slf__debug_menu_entry__set_handler__str, "Hooking set_handler");
 
 	//HookFunc(0x0054C89C, resource_pack_streamer_load_internal_hook, 1, "Hooking resource_pack_streamer::load_internal to inject interior loading");
-	HookFunc(0x005D82D0, mission_stack_manager_insert_mission_pack_hook, 1, "Hooking mission_stack_manager_insert::mission_pack to inject interior loading");
-	//HookFunc(0x005D7FE0, mission_stack_manager_push_mission_pack_hook, 1, "Hooking mission_stack_manager_push::mission_pack to inject interior loading");
 	//HookFunc(0x00550F90, resource_pack_streamer_load_hook, 1, "Hooking resource_pack_streamer::load to inject interior loading");
 
 
 	//HookFunc(0x005B87E0, os_developer_options::get_flag, 1, "Hooking os_developer_options::get_flag");
-	//HookFunc(0x005B87D0, os_developer_options::get_int, 1, "Hooking os_developer_options::get_int");
+	//HookFunc(0x005B87D0, os_developer_options_get_int_os_developer_options::ints_t_, 1, "Hooking os_developer_options_get_int_os_developer_options::ints_t_");
 	//HookFunc(0x005B87F0, os_developer_options_get_int_from_name, 1, "Hooking os_developer_options_get_int_from_name");
 	//HookFunc(0x005B8810, os_developer_options::get_int_from_name, 1, "Hooking os_developer_options::get_int_from_name");
 	HookFunc(0x00614690, unlockables_ltd_edition, 1, "Hooking unlockables_ltd_edition");
@@ -2304,7 +2572,7 @@ void handle_debug_entry(debug_menu_entry* entry) {
 
 }
 
-void handle_num_debug_entry(debug_menu_entry* entry) {
+void handle_mod_debug_entry(debug_menu_entry* entry) {
 	BYTE* val = entry->data;
 	*val = !*val;
 
@@ -2354,10 +2622,20 @@ void handle_warp_entry(debug_menu_entry* entry) {
 	entity_teleport_abs_po(fancy_player_ptr[3], position, 1);
 }
 
-void handle_reboot_entry(debug_menu* entry)
-{
-	;
+void handle_reboot_entry(debug_menu_entry* entry) {
+
+	DWORD* some_number = (*(DWORD**)g_world_ptr + 142);
+
+	while (*some_number) {
+		//printf("some_number %d\n", *some_number);
+		world_dynamics_system_remove_player(*(DWORD*)g_world_ptr, NULL, *some_number - 1);
+	}
+
+	debug_enabled = 0;
+	reboot = 2;
 }
+
+
 
 void handle_hero_entry(debug_menu_entry* entry) {
 
@@ -2381,28 +2659,7 @@ void handle_mission_select_entry(debug_menu_entry* entry) {
 	current_menu = entry->data;
 }
 
-void handle_mission_select_load_entry(debug_menu_entry* entry) {
 
-	{
-		mission_manager_force_mission(
-			mission_manager_s_inst,
-			*(DWORD*)(mission_menu + 28 * *(unsigned __int16*)(entry + 28) + 20),
-			*(int*)(mission_menu + 28 * *(unsigned __int16*)(entry + 28) + 8),
-			*(DWORD*)(mission_menu + 28 * *(unsigned __int16*)(entry + 28) + 24),
-			*(int*)(mission_menu + 28 * *(unsigned __int16*)(entry + 28) + 16));
-	}
-		debug_menu_active_menu = 1;
-		debug_menu_had_menu_this_frame = 1;
-		return debug_menu_release_focus();
-	}
-
-__int64 handle_mission_unload_entry(debug_menu* entry)
-{
-	mission_manager_prepare_unload_script((int*)mission_manager_s_inst);
-	debug_menu_active_menu = 0;
-	debug_menu_had_menu_this_frame = 1;
-	return debug_menu_release_focus();
-}
 
 
 
@@ -2462,6 +2719,11 @@ void handle_game_entry(debug_menu_entry* entry) {
 	current_menu = entry->data;
 }
 
+void handle_game_num_entry(debug_menu_entry* entry) {
+	BYTE* val = entry->data;
+	*val = !*val;
+}
+
 
 typedef void* (__fastcall* script_instance_add_thread_ptr)(script_instance* this, void* edx, vm_executable* a1, void* a2);
 script_instance_add_thread_ptr script_instance_add_thread = 0x005AAD00;
@@ -2484,6 +2746,10 @@ void handle_script_entry(debug_menu_entry* entry) {
 	handle_progression_select_entry(entry);
 }
 
+void handle_mission_load_entry(debug_menu_entry* entry) {
+	current_menu = entry->data;
+}
+
 void handle_devopt_flags_entry(debug_menu_entry* entry) {
 
 	BYTE* val = entry->data;
@@ -2498,7 +2764,7 @@ void handle_devopt_int_entry(debug_menu_entry* entry) {
 
 
 void handle_debug_render_entry(debug_menu_entry* entry) {
-	BYTE* val = entry->text;
+	BYTE* val = entry->data;
 	*val = !*val;
 
 }
@@ -2660,14 +2926,14 @@ void handle_distriction_variants_select_entry(debug_menu_entry* entry, custom_ke
 
 void setup_debug_menu() {
 
-	num_debug = create_menu("Debug Menu", close_debug, handle_num_debug_entry, 2);
+	mod_debug = create_menu("Mod Menu", close_debug, handle_mod_debug_entry, 2);
 	start_debug = create_menu("Debug Menu", close_debug, handle_debug_entry, 2);
 	warp_menu = create_menu("Warp", goto_start_debug, handle_warp_entry, 300);
 	game_menu = create_menu("Game", goto_start_debug, handle_game_entry, 0);
+	game_num_menu = create_menu("Game Flags", goto_start_debug, handle_game_num_entry, 0);
 	devopt_flags_menu = create_menu("DevOpt Flags", goto_start_debug, handle_devopt_flags_entry, 2);
 	devopt_int_menu = create_menu("DevOpt Int", goto_start_debug, handle_devopt_int_entry, 2);
-	mission_menu = create_menu("Missions", goto_start_debug, handle_mission_select_entry, 2);
-	mission_menu = create_menu("Missions", goto_start_debug, handle_mission_select_entry, 2);
+	mission_menu = create_menu("Missions", goto_start_debug, handle_mission_load_entry, 2);
 	jf = create_menu("JF", goto_start_debug, handle_jf_entry, 1);
 	jg = create_menu("JG", goto_start_debug, handle_jg_entry, 1);
 	kf = create_menu("KF", goto_start_debug, handle_kf_entry, 1);
@@ -2699,6 +2965,7 @@ void setup_debug_menu() {
 	entity_10 = create_menu("0x008230d91", goto_start_debug, handle_entity_10_entry, 2);
 	entity_11 = create_menu("0x008230d92", goto_start_debug, handle_entity_11_entry, 2);
 	level_select_menu = create_menu("Level Select", goto_start_debug, handle_level_select_entry, 2);
+	reboot_menu = create_menu("--REBOOT--", goto_start_debug, handle_reboot_entry, 2);
 	hero_menu = create_menu("Hero", goto_start_debug, handle_hero_entry, 5);
 	script_menu = create_menu("Script", goto_start_debug, handle_script_entry, 50);
 	progression_menu = create_menu("Progression", goto_start_debug, handle_progression_select_entry, 10);
@@ -2708,6 +2975,7 @@ void setup_debug_menu() {
 
 	debug_menu_entry warp_entry = { "Warp", BOOLEAN_G, warp_menu };
 	debug_menu_entry game_entry = { "Game", BOOLEAN_G, game_menu };
+	debug_menu_entry game_num_entry = { "Game Flags", BOOLEAN_G, game_num_menu };
 	debug_menu_entry devopt_flags_entry = { "DevOpt Flags", BOOLEAN_G, devopt_flags_menu };
 	debug_menu_entry devopt_int_entry = { "DevOpt Int", BOOLEAN_G, devopt_int_menu };
 	debug_menu_entry mission_select_entry = { "Missions", BOOLEAN_G, mission_menu };
@@ -2721,7 +2989,7 @@ void setup_debug_menu() {
 	debug_menu_entry hero_entry = { "Hero Select", BOOLEAN_G, hero_menu };
 	debug_menu_entry script_entry = { "Script", BOOLEAN_G, script_menu };
 	debug_menu_entry progression_entry = { "Progression", BOOLEAN_G, progression_menu };
-	debug_menu_entry misc_entry = { "Misc", BOOLEAN_G, misc_menu };
+	debug_menu_entry misc_entry = { "Camera", BOOLEAN_G, misc_menu };
 
 
 
@@ -2729,6 +2997,7 @@ void setup_debug_menu() {
 	add_debug_menu_entry(start_debug, &game_entry);
 	add_debug_menu_entry(game_menu, &devopt_flags_entry);
 	add_debug_menu_entry(game_menu, &devopt_int_entry);
+	add_debug_menu_entry(game_menu, &game_num_entry);
 	add_debug_menu_entry(start_debug, &mission_select_entry);
 	add_debug_menu_entry(start_debug, &debug_render_select_entry);
 	add_debug_menu_entry(start_debug, &district_entry);
@@ -2742,21 +3011,14 @@ void setup_debug_menu() {
 	add_debug_menu_entry(start_debug, &progression_entry);
 	add_debug_menu_entry(start_debug, &misc_entry);
 
-	debug_menu_entry city_entry = { "city", NORMAL, level_select_menu };
-	add_debug_menu_entry(level_select_menu, &city_entry);
-	debug_menu_entry reboot_entry = { "-- REBOOT --", NORMAL, level_select_menu };
+	debug_menu_entry city_entry = { "city", NORMAL, reboot_menu };
+	add_debug_menu_entry(reboot_menu, &city_entry);
+	debug_menu_entry reboot_entry = { "-- REBOOT --", NORMAL, reboot_menu };
 	add_debug_menu_entry(level_select_menu, &reboot_entry);
 
 	
 
-    debug_menu_entry handle_unload_mission_entry = { "UNLOAD CURRENT MISSION", NORMAL, mission_menu };
-	add_debug_menu_entry(mission_menu, &handle_unload_mission_entry);
-	debug_menu_entry s01_entry = { "s01_fathers_pride (s01_fathers_pride00)", NORMAL, mission_menu };
-	add_debug_menu_entry(mission_menu, &s01_entry);
-	debug_menu_entry s02_entry = { "s02_workout (s02_workout00)", NORMAL, mission_menu };
-	add_debug_menu_entry(mission_menu, &s02_entry);
-	debug_menu_entry s03_entry = { "s03_rhino_rampage (s03_rhino_rampage00)", NORMAL, mission_menu };
-	add_debug_menu_entry(mission_menu, &s03_entry);
+
 
 	debug_menu_entry start = { "Start", NORMAL, replay_menu };
 	add_debug_menu_entry(replay_menu, &start);
@@ -2823,19 +3085,16 @@ void setup_debug_menu() {
 		"peter_hooded",
 		"peter_hooded_costume",
 		"venom",
+		"venom_spider",
 		"venom_s11",
 		"venom_eddie",
-		"venom_spider",
 		"carnage",
-		"electro_nosuit",
-		"electro_suit",
-		"rhino",
-		"venom_eddie",
 		"wolverine",
 		"green_goblin",
+		"rhino",
 		"mary_jane",
-		"ch_usm_venomhand",
-		"miles_run_spidey"
+		"miles_run_spidey",
+		"ch_usm_venomhand"
 
 	};
 
@@ -2847,6 +3106,7 @@ void setup_debug_menu() {
 
 		add_debug_menu_entry(hero_menu, &hero_entry);
 	}
+
 
 
 	
@@ -2887,5 +3147,6 @@ BOOL WINAPI DllMain(HINSTANCE hInstDll, DWORD fdwReason, LPVOID reserverd) {
 int main() {
 	return 0;
 }
+
 
 
