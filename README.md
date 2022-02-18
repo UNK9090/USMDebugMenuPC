@@ -1,2 +1,2 @@
-# USMFullDebugMenu
+# USMDebugMenuPC
 Simple Menu for load any characters present on ultimate spider-man pc and warp in all places present on game
