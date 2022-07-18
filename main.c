@@ -141,7 +141,6 @@ typedef struct {
 	go_back_function go_back;
 	menu_handler_function handler;
 	menu_handler_function2 handler2;
-	menu_handler_function3 handler3;
 	debug_menu_entry* entries;
 }debug_menu;
 
@@ -186,7 +185,6 @@ debug_menu* entity_7 = NULL;
 debug_menu* entity_8 = NULL;
 debug_menu* entity_9 = NULL;
 debug_menu* entity_10 = NULL;
-debug_menu* entity_11 = NULL;
 debug_menu* game_menu = NULL;
 debug_menu* devopt_flags_menu = NULL;
 debug_menu* devopt_int_menu = NULL;
@@ -238,7 +236,6 @@ debug_menu** all_menus[] = {
 	&entity_8,
 	&entity_9,
 	&entity_10,
-	&entity_11,
 	&savegame_opt_menu,
 	&devopt_flags_menu,
     &devopt_int_menu,
@@ -343,47 +340,7 @@ debug_menu* create_menu(const char* title, go_back_function go_back, menu_handle
 
 }
 
-debug_menu* function_menu(const char* title, go_back_function go_back, menu_handler_function function, menu_handler_function function2, menu_handler_function function3, DWORD capacity) {
 
-	debug_menu* menu = malloc(sizeof(debug_menu));
-	memset(menu, 0, sizeof(debug_menu));
-
-	strncpy(menu->title, title, MAX_CHARS_SAFE);
-
-	menu->capacity = capacity;
-	menu->handler = function;
-	menu->handler2 = function2;
-	menu->handler3 = function3;
-	menu->go_back = go_back;
-
-	DWORD total_entries_size = sizeof(debug_menu_entry) * capacity;
-	menu->entries = malloc(total_entries_size);
-	memset(menu->entries, 0, total_entries_size);
-
-
-	return menu;
-
-}
-
-debug_menu* root_menu(const char* title, go_back_function go_back, menu_handler_function function, menu_handler_function2 function2, DWORD capacity) {
-
-	debug_menu* menu = malloc(sizeof(debug_menu));
-	memset(menu, 0, sizeof(debug_menu));
-
-	strncpy(menu->title, title, MAX_CHARS_SAFE);
-
-	menu->capacity = capacity;
-	menu->handler = function;
-	menu->handler2 = function2;
-	menu->go_back = go_back;
-
-	DWORD total_entries_size = sizeof(debug_menu_entry) * capacity;
-	menu->entries = malloc(total_entries_size);
-	memset(menu->entries, 0, total_entries_size);
-
-	return menu;
-
-}
 
 
 
@@ -2491,9 +2448,6 @@ void menu_input_handler(int keyboard, int SCROLL_SPEED) {
 	else if (is_menu_key_pressed(MENU_RIGHT, keyboard)) {
 		current_menu->handler(&current_menu->entries[current_menu->window_start + current_menu->cur_index], RIGHT);
 	}
-	else if (is_menu_key_pressed(MENU_LEFT, keyboard)) {
-		current_menu->handler3(&current_menu->entries[current_menu->window_start + current_menu->cur_index], LEFT);
-	}
 	else if (is_menu_key_pressed(MENU_BACK, keyboard)) {
 		current_menu->go_back();
 	}
@@ -3128,59 +3082,45 @@ void handle_entity_3_entry(debug_menu_entry* entry) {
 
 void handle_entity_4_entry(debug_menu_entry* entry) {
 
-	BYTE* val = entry->text;
-	*val = !*val;
+	close_debug();
 
 }
 
 void handle_entity_5_entry(debug_menu_entry* entry) {
 
-	BYTE* val = entry->text;
-	*val = !*val;
+	close_debug();
 
 }
 
 void handle_entity_6_entry(debug_menu_entry* entry) {
 
-	BYTE* val = entry->text;
-	*val = !*val;
+	close_debug();
 
 }
 
 void handle_entity_7_entry(debug_menu_entry* entry) {
 
-	BYTE* val = entry->text;
-	*val = !*val;
+	close_debug();
 
 }
 
 void handle_entity_8_entry(debug_menu_entry* entry) {
 
-	BYTE* val = entry->text;
-	*val = !*val;
+	close_debug();
 
 }
 
 void handle_entity_9_entry(debug_menu_entry* entry) {
 
-	BYTE* val = entry->text;
-	*val = !*val;
+	close_debug();
 
 }
 
 void handle_entity_10_entry(debug_menu_entry* entry) {
 
-	BYTE* val = entry->text;
-	*val = !*val;
+	close_debug();
 
 }
-void handle_entity_11_entry(debug_menu_entry* entry) {
-
-	BYTE* val = entry->text;
-	*val = !*val;
-
-}
-
 
 void handle_codesize_entry(debug_menu_entry* entry) {
 
@@ -3308,7 +3248,6 @@ void setup_debug_menu() {
 	entity_8 = create_menu("0x008230d8f", goto_start_debug, handle_entity_8_entry, handle_entity_8_entry, 1);
 	entity_9 = create_menu("0x008230d90", goto_start_debug, handle_entity_9_entry, handle_entity_9_entry, 1);
 	entity_10 = create_menu("0x008230d91", goto_start_debug, handle_entity_10_entry, handle_entity_10_entry, 1);
-	entity_11 = create_menu("0x008230d92", goto_start_debug, handle_entity_11_entry, handle_entity_11_entry, 1);
 	level_select_menu = create_menu("Level Select", goto_start_debug, handle_level_select_entry, handle_debug_entry, 2);
 	hero_menu = create_menu("Hero", goto_start_debug, handle_hero_entry, handle_hero_entry, 5);
 	character_viewer_menu = create_menu("Character Viewer", goto_start_debug, handle_character_viewer_entry, handle_character_viewer_entry, 2);
@@ -3408,8 +3347,6 @@ void setup_debug_menu() {
 	add_debug_menu_entry(entity_menu, &entity_9_entry);
 	debug_menu_entry entity_10_entry = { "0x008230d91", BOOLEAN_G, entity_10 };
 	add_debug_menu_entry(entity_menu, &entity_10_entry);
-	debug_menu_entry entity_11_entry = { "0x008230d92", BOOLEAN_G, entity_11 };
-	add_debug_menu_entry(entity_menu, &entity_11_entry);
 	debug_menu_entry codesize_entry = { "Code Size KB", BOOLEAN_I, memory_menu };
 	add_debug_menu_entry(memory_menu, &codesize_entry);
 	debug_menu_entry initdatasize_entry = { "Init Data Size KB", BOOLEAN_L, memory_menu };
@@ -3539,6 +3476,87 @@ void setup_debug_menu() {
 
 	debug_menu_entry var11 = { "0x6a1850c8", NORMAL, entity_3 };
 	add_debug_menu_entry(entity_3, &var11);
+
+	debug_menu_entry var12 = { "0xeb61a603", NORMAL, entity_4 };
+	add_debug_menu_entry(entity_4, &var12);
+
+	debug_menu_entry var13 = { "0x435bbbac", NORMAL, entity_4 };
+	add_debug_menu_entry(entity_4, &var13);
+
+	debug_menu_entry var14 = { "0x435f580f", NORMAL, entity_4 };
+	add_debug_menu_entry(entity_4, &var14);
+
+	debug_menu_entry var15 = { "0xeb61a603", NORMAL, entity_5 };
+	add_debug_menu_entry(entity_5, &var15);
+
+	debug_menu_entry var16 = { "0x435bbbac", NORMAL, entity_5 };
+	add_debug_menu_entry(entity_5, &var16);
+
+	debug_menu_entry var17 = { "0x435f580f", NORMAL, entity_5 };
+	add_debug_menu_entry(entity_5, &var17);
+
+	debug_menu_entry var18 = { "0xeb61a603", NORMAL, entity_6 };
+	add_debug_menu_entry(entity_6, &var18);
+
+	debug_menu_entry var19 = { "0x435bbbac", NORMAL, entity_6 };
+	add_debug_menu_entry(entity_6, &var19);
+
+	debug_menu_entry var20 = { "0x435f580f", NORMAL, entity_6 };
+	add_debug_menu_entry(entity_6, &var20);
+
+	debug_menu_entry var21 = { "0xeb61a603", NORMAL, entity_7 };
+	add_debug_menu_entry(entity_7, &var21);
+
+	debug_menu_entry var22 = { "0x98e9ec31", NORMAL, entity_7 };
+	add_debug_menu_entry(entity_7, &var22);
+
+	debug_menu_entry var23 = { "0x98eb8450", NORMAL, entity_7 };
+	add_debug_menu_entry(entity_7, &var23);
+
+	debug_menu_entry var24 = { "0x6a16b8a9", NORMAL, entity_7 };
+	add_debug_menu_entry(entity_7, &var24);
+
+	debug_menu_entry var25 = { "0x6a1850c8", NORMAL, entity_7 };
+	add_debug_menu_entry(entity_7, &var25);
+
+	debug_menu_entry var26 = { "0xeb61a603", NORMAL, entity_8 };
+	add_debug_menu_entry(entity_8, &var26);
+
+	debug_menu_entry var27 = { "0x435bbbac", NORMAL, entity_8 };
+	add_debug_menu_entry(entity_8, &var27);
+
+	debug_menu_entry var28 = { "0x435f580f", NORMAL, entity_8 };
+	add_debug_menu_entry(entity_8, &var28);
+
+	debug_menu_entry var29 = { "0xeb61a603", NORMAL, entity_9 };
+	add_debug_menu_entry(entity_9, &var29);
+
+	debug_menu_entry var30 = { "0x98e9ec31", NORMAL, entity_9 };
+	add_debug_menu_entry(entity_9, &var30);
+
+	debug_menu_entry var31 = { "0x98eb8450", NORMAL, entity_9 };
+	add_debug_menu_entry(entity_9, &var31);
+
+	debug_menu_entry var32 = { "0x6a16b8a9", NORMAL, entity_9 };
+	add_debug_menu_entry(entity_9, &var32);
+
+	debug_menu_entry var33 = { "0x6a1850c8", NORMAL, entity_9 };
+	add_debug_menu_entry(entity_9, &var33);
+
+	debug_menu_entry var34 = { "0xeb61a603", NORMAL, entity_10 };
+	add_debug_menu_entry(entity_10, &var34);
+
+	debug_menu_entry var35 = { "0x98e9ec31", NORMAL, entity_10 };
+	add_debug_menu_entry(entity_10, &var35);
+
+	debug_menu_entry var36 = { "0x98eb8450", NORMAL, entity_10 };
+	add_debug_menu_entry(entity_10, &var36);
+
+	debug_menu_entry var37 = { "0x6a16b8a9", NORMAL, entity_10 };
+	add_debug_menu_entry(entity_10, &var37);
+
+	debug_menu_entry var38 = { "0x6a1850c8", NORMAL, entity_10 };
+	add_debug_menu_entry(entity_10, &var38);
 
 
 

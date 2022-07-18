@@ -1,35 +1,113 @@
-Ultimate Spider-Man Debug menu for PC Recreation of the PS2 version's debug menu for the PC version
+# Ultimate Spider-Man Debug menu for PC 
 
-Download Get the menu from here
+**Recreation** of the PS2 version's debug menu for the PC version
 
-Installation Rename binkw32.dll in the game's folder to binkw32_.dll Copy the binkw32.dll in the zip file to the game's folder Usage Keyboard X - opens and closes the menu UP/DOWN Arrows - moves the current select option up and down ENTER - executes the selected option LEFT/RIGHT Arrows - changes the value of the current boolean option ESCAPE - go to previous menu Current implemented options Warp Allows to teleport to any in-game region
+## Download
 
-NOTE: Points of Interest(POI) are only used in missions and the option only works when the direction arrow is visible
+Get the Custom menu from [here](https://github.com/UNK9090/USMDebugMenuPC/releases)
+Get the menu original from [here](https://github.com/krystalgamer/usm-debug-menu/releases)
 
-District variants Allows to switch between variants of given regions
+## Requirements
 
-Level Select contains Hero Select and two options that not works
+* ultimate spider-man pc widescreen
 
-Hero Select Allows to switch with true of false between all available characters
 
-NOTE: peter_parker and peter_hooded are versions of peter without powers, used in the first missions of the game
+## Installation
 
-Game An folder that contains 4 sub folders DevOpt Flags, DevOpt Int, Game Flags and Saved Game Settings
 
-Game Flags Allows to modify others in-game flags that controls certain behaviours contains 3 types of God Mode. God Mode if set 1 = invicible One Hit Kill if set 1 = kill all enemies Bomb Mode if set 1 = mega damage and destroy all cars
+* First download ultimate spider-man pc widescreen [here](https://github.com/ThirteenAG/WidescreenFixesPack/releases/tag/usm)
+* Then extract UltimateSpiderMan.WidescreenFix.zip on desktop
+* Copy script folder and dsound.dll on game folder
+* Rename `debug_menu.dll` in the game's folder to `debug_menu.asi`
+* Copy the `debug_menu.asi` in the zip file to the game's folder
 
-Character Viewer you can launch and view only a lot of characters bossess on city. 
+## Usage
 
-DevOpt Ints unfortunately there are 76 options that not works.
+Keyboard
+* **X** - opens and closes the menu
+* **UP/DOWN Arrows** - moves the current select option up and down
+* **ENTER** - executes the selected option
+* **LEFT/RIGHT Arrows** - changes the value of the current **boolean** option
+* **ESCAPE** - go to previous menu
 
-Missions contains 7 sub folders called JF JG KF KG KH LH LG.
+Dualshock 4
+* **PS Button** - opens and closes the menu
+* **UP/DOWN Pads** - moves the current select option up and down
+* **X Button** - executes the selected option
+* **LEFT/RIGHT Pads** - changes the value of the current **boolean** option
+* **O Button** - go to previous menu
 
-DevOpt Flags Allows to modify in-game flags that controls certain behaviours Live in Glass House: disables the Area unavailable messages
+## Current implemented options
 
-Script Access to in-game scripts that allow the player to tap into debug features.
+### Warp
 
-Progression Set your progress to any point in the game.
+Allows to teleport to any in-game region
 
-Extending functionality If you desire to add any new option(s) to the menu, it's very simple. create_menu is used to create a new menu. add_debug_menu_entry is used to add entries to a menu.
+**NOTE**: Points of Interest(POI) are only used in missions and the option only works when the direction arrow is visible 
 
-License This project is MIT licensed
+### District variants
+
+Allows to switch variants of given regions
+
+### Character Viewer
+
+Allows to switch and view all available characters on menu unlockables
+
+### Hero
+
+Allows to switch between all available heroes
+
+**NOTE**: `peter_parker` and `peter_hooded` are versions of peter without powers, used in the first missions of the game
+
+### Game
+
+Allows to modify in-game flags that controls certain behaviours
+* God Mode: enable hero invulnerable
+* One Hit Kill: Kill all enemies
+* Bomb Mode: Destroy all cars and kill all enemies
+* Monkey Time: Enable Watermark timer only on game
+* Show Fps: Show all game infos and fps
+* Show Memory Info: Show Memory bar on game
+
+
+
+### Dev Opt Flags
+
+Allows to modify flags options that controls certain behaviours
+* Live in Glass House: disables the `Area unavailable` messages
+* Gravity: disable gravity on city
+* Unlock All Unlockables: unlock all menu unlockables
+* Env Map Tool: is dev tool that change the game map
+
+### Dev Opt Int
+
+Allows to modify int options that controls certain behaviours
+
+Note: this int options not working on game
+
+### Save Opt
+
+Empty Menu
+
+### Script
+
+Access to in-game scripts that allow the player to tap into debug features
+
+### Progression
+
+Set your progress to any point before to start the mission in the game
+
+### Missions
+
+This is a work in progress menu need add stuffs
+
+## Extending functionality
+
+If you desire to add any new option(s) to the menu, it's very simple.
+`create_menu` is used to create a new menu.
+`add_debug_menu_entry` is used to add entries to a menu.
+
+
+## License
+
+This project is MIT licensed
