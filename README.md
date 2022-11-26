@@ -9,7 +9,8 @@ Get the menu original from [here](https://github.com/krystalgamer/usm-debug-menu
 
 ## Requirements
 
-* ultimate spider-man pc widescreen
+* Ultimate Spider-Man PC Widescreen
+* Visual c++ 2015
 
 
 ## Installation
