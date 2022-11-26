@@ -33,9 +33,9 @@ Keyboard
 Dualshock 4
 * **PS Button** - opens and closes the menu
 * **UP/DOWN Pads** - moves the current select option up and down
-* **Square Button** - changes the value of the current **boolean** option
+* **Square Button** - executes the selected option
 * **LEFT/RIGHT Pads** - changes the value of the current **boolean** option
-* **Cross Button** - executes the selected option
+* **Cross Button** - changes the value of the current **boolean** option
 * **Circle Button** - go to previous menu
 
 ## Current implemented options
