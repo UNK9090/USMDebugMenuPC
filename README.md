@@ -33,9 +33,10 @@ Keyboard
 Dualshock 4
 * **PS Button** - opens and closes the menu
 * **UP/DOWN Pads** - moves the current select option up and down
-* **X Button** - executes the selected option
+* **Square Button** - changes the value of the current **boolean** option
 * **LEFT/RIGHT Pads** - changes the value of the current **boolean** option
-* **O Button** - go to previous menu
+* **Cross Button** - executes the selected option
+* **Circle Button** - go to previous menu
 
 ## Current implemented options
 
@@ -69,6 +70,11 @@ Allows to modify in-game flags that controls certain behaviours
 * Show Fps: Show all game infos and fps
 * Show Memory Info: Show Memory bar on game
 
+### Savegame Opt
+* Unlock All Unlockables: unlock all menu unlockables
+* Unlock Characters: unlock Characters menu
+* Unlock Landmarks:  unlock Landmarks menu
+* Unlock Concept Art:  unlock Concept Art menu
 
 
 ### Dev Opt Flags
@@ -76,7 +82,6 @@ Allows to modify in-game flags that controls certain behaviours
 Allows to modify flags options that controls certain behaviours
 * Live in Glass House: disables the `Area unavailable` messages
 * Gravity: disable gravity on city
-* Unlock All Unlockables: unlock all menu unlockables
 * Env Map Tool: is dev tool that change the game map
 
 ### Dev Opt Int
@@ -85,9 +90,27 @@ Allows to modify int options that controls certain behaviours
 
 Note: this int options not working on game
 
-### Save Opt
+### NGL Debug
 
-Empty Menu
+This is NGL Debug menu contains:
+
+Show Perf Info: if set to 1 show game info and if set to 0 back to normal
+Screenshot: capture instanely a screenshot of the game or debug menu 
+
+### Misc Menu
+
+This is Cheat Misc menu contains:
+
+Play City Ambient Music
+Disable Pause Menu
+Enable Red Watermark
+TestFlag
+Weird Flag
+Disable Environment
+Unload District
+Invulnerable Hero
+Invulnerable Enemies
+
 
 ### Script
 
